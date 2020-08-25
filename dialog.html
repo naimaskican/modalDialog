@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modal Dialog</title>
+    <style>
+        body {
+          font: 120%/1.5 sans-serif;
+          background: #fff;
+        }
+      
+        .a11y {
+          clip-path: inset(100%);
+          clip: rect(1px, 1px, 1px, 1px);
+          height: 1px;
+          overflow: hidden;
+          position: absolute;
+          white-space: nowrap;
+          width: 1px;
+        }
+      
+        [hidden] {
+          display: none;
+        }
+      
+        main {
+          margin: 0 auto;
+          max-width: 50em;
+          width: 100%;
+        }
+      
+        .screen {
+          position: absolute;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          right: 0;
+          height: 2000px;
+          width: 100%;
+          background: rgba(0, 0, 0, 0.6);
+        }
+      
+        [role="dialog"] {
+          position: absolute;
+          left: 12.5%;
+          top: 50%;
+          z-index: 20;
+          background: #fff;
+          width: 75%;
+        }
+      
+        [role="dialog"] h2 {
+          text-align: center;
+        }
+      
+        [role="dialog"] .pr {
+          display: flex;
+          flex-direction: column;
+          padding: 1em;
+        }
+      
+        [role="dialog"] .close {
+          order: -1;
+          height: 2em;
+          width: 2em;
+        }
+      
+        button {
+          
+          height: auto;
+        }
+        .toc ul {
+          display: none;
+        }
+        </style>
+</head>
+<body>
+    <main>
+        <h1>Modal Dialog Example</h1>
+        <button class="trigger" id="modal-trigger">Trigger</button>
+        <p>Modal dialog components:</p>
+        <ul>
+            <li>
+                Dialog button(Trigger): the button that opens the child window
+            </li>
+            <li>
+                Parent window: the page containing the button
+            </li>
+            <li>
+                Dialog Container: Overlay must not be opened on hover or focus of button (or any other element).
+                <ul>
+                    <li>
+                        Dialog must be opened on click-event of button or via an application event.
+                    </li>
+                    <li>
+                        Dialog must use ARIA role of dialog.
+                    </li>
+                    <li>
+                        Dialog must contain a button that can dismiss the dialog (this will be 'close', 'cancel' or 'okay', depending on the specific type of dialog).
+                    </li>
+                    <li>
+                        Dialog must contain at least one interactive element (this can be the close button).
+                    </li>
+                    <li>
+                        Dialog must be labelled by an onscreen element (a heading for example) or explicit attribute.
+                    </li>
+                </ul>
+            </li>
+            <li>
+                title: the title of the child window.
+                Modal must start heading hierarchy at level 2
+            </li>
+            <li>
+                Mask: an element that visibly masks the content in the parent window.
+                Mask must be positioned between parent window and child window.
+            </li>
+        </ul>
+        <h2>Keyboard Interaction</h2>
+        <ul>
+            <li>
+                Dialog button must be keyboard focusable.
+            </li>
+            <li>
+                If dialog button has focus, ENTER or SPACE key must open child window/dialog.
+            </li>
+            <li>
+                When child window/dialog opens, focus must move to the dialog Container OR close button inside of dialog (i.e. the 'X" button) OR 1st Interactive element.
+            </li>
+            <li>
+                Child window must confine TAB and SHIFT-TAB to it's focusable children.
+            </li>
+            <li>
+                Pressing ESC key may close child window.
+            </li>
+            <li>
+                Dialog button must receive focus when child window is closed.
+            </li>
+        </ul>
+        <h2>Screen Reader Interaction</h2>
+        <ul>
+            <li>
+                Dialog button must not announce 'has popup'. A dialog is not considered a popup (i.e aria-haspopup="true" is not valid in this context).
+            </li>
+            <li>
+                Title must be announced when dialog opens (via focus management).
+            </li>
+            <li>
+                Focussed element must be announced when dialog opens (via focus management).
+            </li>
+            <li>
+                Virtual cursor must be confined within dialog container.
+            </li>
+            <!-- <li>
+                Assistive technology might announce "Entering/leaving dialog" (or words to those affect) when focus enters or leaves the overlay respectively.
+            </li> -->
+        </ul>
+        <h2>Pointer</h2>
+        <ul>
+            <li>
+                Clicking dialog button must open dialog.
+            </li>
+            <li>
+                Clicking mask can dismiss dialog (same functionality as close button).
+            </li>
+        </ul>
+        <a href="https://www.google.com">TestLink</a>
+    </main>
+    <div hidden id="my-dialog" role="dialog" aria-labelledby="dialog_title" tabindex="-1">
+        <div class="dialog__window">
+            <div class="dialog__header">
+                <h2 id="dialog_title">Dialog Example</h2>
+                <button aria-label="Close" class="close" type="button">
+                    X
+                </button>
+            </div>
+            <div class="dialog__main">
+                <p>
+                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Repellendus tempore magni, doloremque, excepturi aperiam nesciunt at asperiores, esse odit sint beatae impedit quis cum. Quam adipisci debitis unde accusantium eaque.
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="screen" hidden="hidden"></div>
+    <script>
+      (function() {
+    const dialogTrigger = document.querySelector('.trigger');
+    const main = document.querySelector('main');
+    const dialog = document.querySelector('[role="dialog"]');
+    const screen = document.querySelector('.screen');
+    let focusableElements = main.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    // cache elements with tabindex attributes
+    let indexes = [];
+    focusableElements.forEach(el => {
+      indexes.push(el.getAttribute('tabindex'));
+    });
+
+    const hideMain = () => {
+      main.setAttribute('aria-hidden', 'true');
+    };
+
+    const showMain = () => {
+      main.removeAttribute('aria-hidden');
+    };
+
+    const showDialog = () => {
+      dialog.removeAttribute('hidden');
+      screen.removeAttribute('hidden');
+      window.scrollTo(0, 100);
+    };
+
+    const hideDialog = () => {
+      dialog.setAttribute('hidden', 'hidden');
+      screen.setAttribute('hidden', 'hidden');
+    };
+
+    const removeElementsFromFocus = () => {
+      // take elements out of the focus order
+      focusableElements.forEach(el => {
+        el.setAttribute('tabindex', '-1');
+      });
+    };
+
+    const resetFocusOrder = () => {
+      focusableElements.forEach((el, index) => {
+        if (indexes[index] !== null) {
+          el.setAttribute('tabindex', indexes[index]);
+        } else {
+          el.removeAttribute('tabindex');
+        }
+
+      });
+    };
+
+    const handleKeyDown = (e) => {
+      if (main.getAttribute('aria-hidden') && e.code === 'Escape') {
+        handleClose();
+      }
+    };
+
+    const handleClose = (e) => {
+      resetFocusOrder();
+      showMain();
+      hideDialog();
+      setTimeout(() => {
+        dialogTrigger.focus();
+      }, 350);
+    };
+
+    const handleClickOutsideDialog = (e) => {
+      if (e.target.classList.contains('screen')) {
+        handleClose();
+      }
+    };
+
+    const handleDialogTrigger = (e) => {
+      removeElementsFromFocus();
+      hideMain();
+      showDialog();
+      setTimeout(() => {
+        dialog.focus();
+      }, 350);
+
+      const close = document.querySelector('.close');
+      close.addEventListener('click', handleClose);
+
+    };
+
+    dialogTrigger.addEventListener('click', handleDialogTrigger);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('click', handleClickOutsideDialog);
+
+  })();
+       
+    </script>
+</body>
+</html>
